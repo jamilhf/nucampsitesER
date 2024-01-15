@@ -37,32 +37,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser("12345-67890-23535-34553"));
 
+app.use("/", indexRouter);
+app.use("/users", usersRouter);
+
 function auth(req, res, next) {
-  if (!req.signed) {
-    console.log(req.headers);
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      const err = new Error("You are authenticated!");
-      res.setHeader("WWW-Authenticate", "Basic");
-      err.status = 401;
-      return next(err);
-    }
-    const auth = Buffer.from(authHeader.split(" ")[1], "base64")
-      .toString()
-      .split(":");
-    const user = auth[0];
-    const pass = auth[1];
-    if (user === "admin" && pass === "password") {
-      res.cookie("user", "admin", { signed: true });
-      return next(); // authorized
-    } else {
-      const err = new Error("You are not authenticated!");
-      res.setHeader("WWW-Authenticate", "Basic");
-      err.status = 401;
-      return next(err);
-    }
+  console.log(req.session);
+
+  if (!req.session.user) {
+    const err = new Error("You are not authenticated!");
+    err.status = 401;
+    return next(err);
   } else {
-    if (req.signedCookies.user === "admin") {
+    if (req.session.user === "authenticated") {
       return next();
     } else {
       const err = new Error("You are not authenticated!");
@@ -79,9 +65,6 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/campsites", campsiteRouter);
 app.use("/promotions", promotionRouter);
 app.use("/partners", partnerRouter);
-
-app.use("/", indexRouter);
-app.use("/users", usersRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
